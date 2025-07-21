@@ -1,0 +1,11 @@
+{
+    "id": "obsidian-daily-recall",
+    "name": "Daily Recall",
+    "version": "1.0.0",
+    "minAppVersion": "0.15.0",
+    "description": "Seamlessly continue your daily notes with content from previous entries",
+    "author": "rwxd",
+    "authorUrl": "",
+    "isDesktopOnly": false,
+    "js": "main.js"
+}
