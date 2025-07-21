@@ -23,27 +23,39 @@ __export(main_exports, {
 });
 module.exports = __toCommonJS(main_exports);
 var import_obsidian = require("obsidian");
-var DAILY_FOLDER = "daily";
-var DEFAULT_HEADER = "# Daily Note\n";
+var DEFAULT_SETTINGS = {
+  dailyNotesFolder: "Daily"
+};
 var DailyRecallPlugin = class extends import_obsidian.Plugin {
   async onload() {
+    await this.loadSettings();
     this.addCommand({
       id: "open-todays-daily-note",
       name: "Open Today's Daily Note",
       callback: () => this.openOrCreateDaily()
     });
+    this.addSettingTab(new DailyRecallSettingTab(this.app, this));
+    this.addRibbonIcon("calendar-days", "Open Today's Daily Note", () => {
+      this.openOrCreateDaily();
+    });
+  }
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+  async saveSettings() {
+    await this.saveData(this.settings);
   }
   async openOrCreateDaily() {
     const vault = this.app.vault;
     const todayStr = window.moment().format("YYYY-MM-DD");
-    const filePath = `${DAILY_FOLDER}/${todayStr}.md`;
-    if (!vault.getAbstractFileByPath(DAILY_FOLDER)) {
-      await vault.createFolder(DAILY_FOLDER);
+    const filePath = `${this.settings.dailyNotesFolder}/${todayStr}.md`;
+    if (!vault.getAbstractFileByPath(this.settings.dailyNotesFolder)) {
+      await vault.createFolder(this.settings.dailyNotesFolder);
     }
     let file = vault.getAbstractFileByPath(filePath);
     if (!file) {
-      const files = vault.getFiles().filter((f) => f.path.startsWith(`${DAILY_FOLDER}/`) && f.extension === "md").sort((a, b) => b.stat.mtime - a.stat.mtime);
-      let content = DEFAULT_HEADER;
+      const files = vault.getFiles().filter((f) => f.path.startsWith(`${this.settings.dailyNotesFolder}/`) && f.extension === "md").sort((a, b) => b.stat.mtime - a.stat.mtime);
+      let content = "# Daily Note\n";
       if (files.length > 0) {
         content = await vault.read(files[0]);
       }
@@ -52,5 +64,20 @@ var DailyRecallPlugin = class extends import_obsidian.Plugin {
     }
     const leaf = this.app.workspace.getLeaf(true);
     await leaf.openFile(file);
+  }
+};
+var DailyRecallSettingTab = class extends import_obsidian.PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "Daily Recall Settings" });
+    new import_obsidian.Setting(containerEl).setName("Daily notes folder").setDesc("The folder where daily notes will be stored").addText((text) => text.setPlaceholder("Daily").setValue(this.plugin.settings.dailyNotesFolder).onChange(async (value) => {
+      this.plugin.settings.dailyNotesFolder = value;
+      await this.plugin.saveSettings();
+    }));
   }
 };
